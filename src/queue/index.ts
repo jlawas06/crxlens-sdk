@@ -1,0 +1,73 @@
+/// <reference types="chrome"/>
+import { CRXEvent } from '../types';
+import { sendEvents } from '../transport';
+
+let queue: CRXEvent[] = [];
+const BATCH_SIZE = 10;
+const FLUSH_INTERVAL_MS = 5000;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+const QUEUE_STORAGE_KEY = 'crxlens_offline_events';
+
+export async function initQueue() {
+  // Load offline events from chrome.storage.local if available
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    try {
+      const data = await chrome.storage.local.get(QUEUE_STORAGE_KEY);
+      if (data && Array.isArray(data[QUEUE_STORAGE_KEY])) {
+        queue.push(...(data[QUEUE_STORAGE_KEY] as CRXEvent[]));
+      }
+    } catch (err) {
+      // Ignored
+    }
+  }
+
+  startFlushTimer();
+}
+
+function startFlushTimer() {
+  if (!flushTimer) {
+    flushTimer = setInterval(() => {
+      flushQueue();
+    }, FLUSH_INTERVAL_MS);
+  }
+}
+
+export async function enqueueEvent(event: CRXEvent) {
+  queue.push(event);
+
+  if (queue.length >= BATCH_SIZE) {
+    await flushQueue();
+  }
+
+  await persistQueue();
+}
+
+async function flushQueue() {
+  if (queue.length === 0) return;
+  
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return; // Wait for online
+  }
+
+  const eventsToSend = [...queue];
+  queue = []; // Optimistically clear queue
+
+  const success = await sendEvents(eventsToSend);
+
+  if (!success) {
+    // Re-queue on failure (prepend)
+    queue = [...eventsToSend, ...queue];
+  }
+
+  await persistQueue();
+}
+
+async function persistQueue() {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    try {
+      await chrome.storage.local.set({ [QUEUE_STORAGE_KEY]: queue });
+    } catch {
+      // Ignored
+    }
+  }
+}
