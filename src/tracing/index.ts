@@ -9,6 +9,12 @@ function generateTraceId(): string {
   return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
 }
 
+interface CRXLensEnvelope {
+  __crxlens_envelope: true;
+  trace_id: string;
+  payload: any;
+}
+
 export function initTracing() {
   if (typeof chrome === 'undefined') return;
 
@@ -22,16 +28,17 @@ export function initTracing() {
         currentTraceId = generateTraceId();
       }
 
-      // Find the message object (usually the first or second arg depending on extensionId presence)
-      // For simplicity, assume standard usage: chrome.runtime.sendMessage(message, callback) or (extensionId, message, callback)
+      // Standard usage: (message, options, responseCallback) or (extensionId, message, options, responseCallback)
       let messageArgIndex = typeof args[0] === 'string' ? 1 : 0;
       
-      if (args[messageArgIndex] && typeof args[messageArgIndex] === 'object') {
-        args[messageArgIndex] = {
-          ...args[messageArgIndex],
-          __crxlens_trace_id: currentTraceId
-        };
-      }
+      const originalMessage = args[messageArgIndex];
+      const envelope: CRXLensEnvelope = {
+        __crxlens_envelope: true,
+        trace_id: currentTraceId,
+        payload: originalMessage
+      };
+
+      args[messageArgIndex] = envelope;
 
       return originalSendMessage.apply(chrome.runtime, args as any);
     };
@@ -47,25 +54,56 @@ export function initTracing() {
         currentTraceId = generateTraceId();
       }
 
-      let messageArgIndex = 1; // tabId is always first arg
+      // (tabId, message, options, responseCallback)
+      let messageArgIndex = 1; 
 
-      if (args[messageArgIndex] && typeof args[messageArgIndex] === 'object') {
-        args[messageArgIndex] = {
-          ...args[messageArgIndex],
-          __crxlens_trace_id: currentTraceId
-        };
-      }
+      const originalMessage = args[messageArgIndex];
+      const envelope: CRXLensEnvelope = {
+        __crxlens_envelope: true,
+        trace_id: currentTraceId,
+        payload: originalMessage
+      };
+
+      args[messageArgIndex] = envelope;
 
       return originalTabsSendMessage.apply(chrome.tabs, args as any);
     };
   }
 
-  // Listen for incoming messages to set the current trace ID
+  // Intercept runtime.onMessage.addListener to unwrap envelopes
   if (chrome.runtime && chrome.runtime.onMessage) {
-    chrome.runtime.onMessage.addListener((message) => {
-      if (message && typeof message === 'object' && message.__crxlens_trace_id) {
-        currentTraceId = message.__crxlens_trace_id;
+    const originalAddListener = chrome.runtime.onMessage.addListener;
+    const listenerMap = new Map<Function, any>();
+
+    chrome.runtime.onMessage.addListener = function (callback: any) {
+      const wrappedCallback = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+        if (message && typeof message === 'object' && message.__crxlens_envelope === true) {
+          const envelope = message as CRXLensEnvelope;
+          currentTraceId = envelope.trace_id;
+          return callback(envelope.payload, sender, sendResponse);
+        }
+        return callback(message, sender, sendResponse);
+      };
+
+      listenerMap.set(callback, wrappedCallback);
+      return originalAddListener.apply(chrome.runtime.onMessage, [wrappedCallback as any]);
+    };
+
+    // Also need to wrap removeListener and hasListener for consistency
+    const originalRemoveListener = chrome.runtime.onMessage.removeListener;
+    chrome.runtime.onMessage.removeListener = function (callback: any) {
+      const wrapped = listenerMap.get(callback);
+      if (wrapped) {
+        listenerMap.delete(callback);
+        return originalRemoveListener.apply(chrome.runtime.onMessage, [wrapped as any]);
       }
-    });
+      return originalRemoveListener.apply(chrome.runtime.onMessage, [callback]);
+    };
+
+    const originalHasListener = chrome.runtime.onMessage.hasListener;
+    chrome.runtime.onMessage.hasListener = function (callback: any) {
+      const wrapped = listenerMap.get(callback);
+      return originalHasListener.apply(chrome.runtime.onMessage, [wrapped as any || callback]);
+    };
   }
 }

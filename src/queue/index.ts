@@ -4,8 +4,6 @@ import { sendEvents } from '../transport';
 
 let queue: CRXEvent[] = [];
 const BATCH_SIZE = 10;
-const FLUSH_INTERVAL_MS = 5000;
-let flushTimer: ReturnType<typeof setTimeout> | null = null;
 const QUEUE_STORAGE_KEY = 'crxlens_offline_events';
 
 export async function initQueue() {
@@ -21,14 +19,17 @@ export async function initQueue() {
     }
   }
 
-  startFlushTimer();
-}
+  // Set up Manifest V3 compliant alarms for flushing
+  if (typeof chrome !== 'undefined' && chrome.alarms) {
+    chrome.alarms.create('crxlens_flush', { periodInMinutes: 1 });
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === 'crxlens_flush') {
+        flushQueue();
+      }
+    });
 
-function startFlushTimer() {
-  if (!flushTimer) {
-    flushTimer = setInterval(() => {
-      flushQueue();
-    }, FLUSH_INTERVAL_MS);
+    // Initial flush attempt
+    flushQueue();
   }
 }
 
