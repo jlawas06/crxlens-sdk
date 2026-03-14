@@ -2,15 +2,25 @@
   "name": "@crxlens/sdk",
   "version": "1.0.0",
   "description": "Observability SDK for Chrome Extensions — capture errors, breadcrumbs, and cross-context traces.",
-  "keywords": ["chrome-extension", "observability", "error-tracking", "sentry", "tracing", "crxlens"],
+  "keywords": [
+    "chrome-extension",
+    "observability",
+    "error-tracking",
+    "sentry",
+    "tracing",
+    "crxlens"
+  ],
   "author": "CRXLens",
   "license": "MIT",
   "homepage": "https://crxlens.io",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jlawas/crxlens-sdk"
+    "url": "https://github.com/jlawas06/crxlens-sdk"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -33,4 +43,3 @@
     "vitest": "^4.1.0"
   }
 }
-
