@@ -35,10 +35,9 @@ function startFlushTimer() {
 export async function enqueueEvent(event: CRXEvent) {
   queue.push(event);
 
-  if (queue.length >= BATCH_SIZE) {
-    await flushQueue();
-  }
-
+  // For Extension environments, we want to attempt flushing immediately because
+  // the execution context (like a Popup) could violently terminate at any second.
+  await flushQueue();
   await persistQueue();
 }
 

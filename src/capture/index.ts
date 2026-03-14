@@ -27,14 +27,16 @@ function createEvent(errorMessage: string, stackTrace?: string): CRXEvent {
 }
 
 export function initErrorCapture() {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', (event: ErrorEvent) => {
+  const globalContext = typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : null);
+  
+  if (globalContext) {
+    globalContext.addEventListener('error', (event: any) => {
       const errorMsg = event.message || 'Unknown Error';
-      const stack = event.error?.stack || `${event.filename}:${event.lineno}:${event.colno}`;
+      const stack = event.error?.stack || undefined;
       enqueueEvent(createEvent(errorMsg, stack));
     });
 
-    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+    globalContext.addEventListener('unhandledrejection', (event: any) => {
       const errorMsg = event.reason?.message || typeof event.reason === 'string' ? event.reason : 'Unhandled Promise Rejection';
       const stack = event.reason?.stack || undefined;
       enqueueEvent(createEvent(errorMsg, stack));
