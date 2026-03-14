@@ -39,4 +39,5 @@ export interface CRXEvent {
 export interface InitOptions {
   apiKey: string;
   endpoint?: string;
+  debug?: boolean;
 }
