@@ -10,10 +10,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    
-    defaults:
-      run:
-        working-directory: ./crxlens-sdk
 
     steps:
       - name: Checkout repository
