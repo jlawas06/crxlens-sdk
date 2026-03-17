@@ -1,6 +1,6 @@
-# crxlens-sdk
+# @crxlens/sdk
 
-The official JavaScript SDK for [CRXLens](https://crxlens.io) — an observability platform for Chrome Extensions.
+The official JavaScript SDK for [CRXLens](https://crxlens.io/) — an observability platform for Chrome Extensions.
 
 > Capture errors, breadcrumbs, and cross-context execution traces across your extension's background service worker, content scripts, and popup UI.
 
@@ -9,7 +9,7 @@ The official JavaScript SDK for [CRXLens](https://crxlens.io) — an observabili
 ## Installation
 
 ```bash
-npm install crxlens-sdk
+npm install @crxlens/sdk
 ```
 
 ---
@@ -19,14 +19,14 @@ npm install crxlens-sdk
 Call `init()` at the top of each extension context that you want to monitor (background, content, and popup).
 
 ```ts
-import { CRXLens } from 'crxlens-sdk';
+import { CRXLens } from '@crxlens/sdk';
 
 CRXLens.init({
   apiKey: 'YOUR_PROJECT_API_KEY'
 });
 ```
 
-Your API key is available from the [CRXLens Dashboard](https://crxlens.io/dashboard/projects).
+Your API key is available from the [CRXLens Dashboard](https://crxlens.io/dashboard).
 
 ---
 
@@ -35,6 +35,8 @@ Your API key is available from the [CRXLens Dashboard](https://crxlens.io/dashbo
 ### Initialize
 
 ```ts
+import { CRXLens } from '@crxlens/sdk';
+
 CRXLens.init({
   apiKey: 'your-api-key',
   // Optional: override the default endpoint (useful for self-hosting)
@@ -126,7 +128,7 @@ Add the following to your `manifest.json`:
 
 **`background.js`**
 ```ts
-import { CRXLens } from 'crxlens-sdk';
+import { CRXLens } from '@crxlens/sdk';
 
 CRXLens.init({ apiKey: 'YOUR_KEY' });
 CRXLens.setTags({ context: 'background' });
@@ -134,7 +136,7 @@ CRXLens.setTags({ context: 'background' });
 
 **`content.js`**
 ```ts
-import { CRXLens } from 'crxlens-sdk';
+import { CRXLens } from '@crxlens/sdk';
 
 CRXLens.init({ apiKey: 'YOUR_KEY' });
 CRXLens.setUser({ id: currentUserId });
@@ -142,7 +144,7 @@ CRXLens.setUser({ id: currentUserId });
 
 **`popup.js`**
 ```ts
-import { CRXLens } from 'crxlens-sdk';
+import { CRXLens } from '@crxlens/sdk';
 
 CRXLens.init({ apiKey: 'YOUR_KEY' });
 ```
